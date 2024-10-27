@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using static System.Formats.Asn1.AsnWriter;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace Thunghiem1
 {
@@ -17,6 +18,7 @@ namespace Thunghiem1
         public static string blockArea = "■";   //1 khối
         public static int rows = 0, score = 0, level = 1;
         public static int[,] grid = new int[23, 16];
+        static int highestScore = 0;
 
         //Repeated statics Atributes
         private static TetrisFigure tFig;   //khối đang rơi
@@ -55,9 +57,9 @@ namespace Thunghiem1
             Console.WriteLine("Menu");
             options = new List<Option>()
             {
-                new Option("Instruction", () => Huongdan()),
-                new Option("StartGame", () => Game()),
-                new Option("Exit", () => Environment.Exit(0)),
+                new Option("\t\t\tInstruction", () => Huongdan()),
+                new Option("\t\t\tStartGame", () => Game()),
+                new Option("\t\t\tExit", () => Environment.Exit(0)),
             };
             int index = 0;
             WriteMenu(options, options[index]);
@@ -102,14 +104,23 @@ namespace Thunghiem1
 
             Console.Clear();
             Console.SetCursorPosition(40, 7);
-            Console.WriteLine("Tetris");
+            Console.WriteLine(@"
+                        ===================================================================
+                        ||   ______    ______     ______    ______     __     ______     ||
+                        ||  /\__  _\  /\  ___\   /\__  _\  /\  == \   /\ \   /\  ___\    ||
+                        ||  \/_/\ \/  \ \  __\   \/_/\ \/  \ \  __<   \ \ \  \ \___  \   ||
+                        ||     \ \_\   \ \_____\    \ \_\   \ \_\ \_\  \ \_\  \/\_____\  ||
+                        ||      \/_/    \/_____/     \/_/    \/_/ /_/   \/_/   \/_____/  ||
+                        ||                                                               ||
+                        ===================================================================
+            ");
 
-            Console.SetCursorPosition(0, 10);
+            Console.SetCursorPosition(0, 18);
             foreach (Option option in options)
             {
                 if (option == selectedOption)
                 {
-                    Console.Write("> ");
+                    Console.Write("\t\t\t> ");
                 }
                 else
                 {
@@ -188,37 +199,37 @@ namespace Thunghiem1
                     keyinfo = Console.ReadKey();
 
                     Console.SetCursorPosition(40, 20);
-                        Console.WriteLine("Do you want to continue? Y/N");
-                        Console.SetCursorPosition(40, 22);
-                        string res = "" + Console.ReadLine();
+                    Console.WriteLine("Do you want to continue? Y/N");
+                    Console.SetCursorPosition(40, 22);
+                    string res = "" + Console.ReadLine();
 
-                        if (res.ToUpper().Equals("Y"))
+                    if (res.ToUpper().Equals("Y"))
+                    {
+                        for (int i = 0; i < 23; i++)
                         {
-                            for (int i = 0; i < 23; i++)
+                            for (int j = 0; j < 16; j++)
                             {
-                                for (int j = 0; j < 16; j++)
-                                {
-                                    spawnedBlockLocation[i, j] = 0;
-                                }
+                                spawnedBlockLocation[i, j] = 0;
                             }
-                            score = 0;
-                            rows = 0;
-                            level = 1;
                         }
-                        else if (res.ToUpper().Equals("N"))
-                        {
-                            Console.SetCursorPosition(40, 24);
-                            Console.WriteLine("Bye! See you again");
-                            Environment.Exit(0);
-                        
-                        }
+                        score = 0;
+                        rows = 0;
+                        level = 1;
+                    }
+                    else if (res.ToUpper().Equals("N"))
+                    {
+                        Console.SetCursorPosition(40, 24);
+                        Console.WriteLine("Bye! See you again");
+                        Environment.Exit(0);
+
+                    }
                     else
-                        {
-                            Console.SetCursorPosition(40, 24);
-                            Console.WriteLine("Invalid input. Please enter 'Y' or 'N'.");
-                            break;
-                            
-                        }
+                    {
+                        Console.SetCursorPosition(40, 24);
+                        Console.WriteLine("Invalid input. Please enter 'Y' or 'N'.");
+                        break;
+
+                    }
 
 
                 }
@@ -278,15 +289,17 @@ namespace Thunghiem1
 
 
         //Dashboard that shows score, level and the ammount of rows that you eliminate
-        public static void GetDashboard(int levels, int scores, int rowss)
+        public static void GetDashboard(int levels, int highestScore, int scores, int rowss)
         {
             Console.SetCursorPosition(40, 5);
             Console.WriteLine("Level : " + levels);
             Console.SetCursorPosition(40, 7);
-            Console.WriteLine("Score : " + scores);
+            Console.WriteLine("Highest Score : " + highestScore);
             Console.SetCursorPosition(40, 9);
-            Console.WriteLine("Rows cleared : " + rowss);
+            Console.WriteLine("Score : " + scores);
             Console.SetCursorPosition(40, 11);
+            Console.WriteLine("Rows cleared : " + rowss);
+            Console.SetCursorPosition(40, 13);
             Console.WriteLine("Next figure : ");
         }
 
@@ -411,7 +424,7 @@ namespace Thunghiem1
 
             lvlModifier(combo);
 
-            GetDashboard(level, score, rows);
+            GetDashboard(level, highestScore, score, rows);
 
             dropRate = 300 - 22 * level;
 
@@ -438,6 +451,43 @@ namespace Thunghiem1
             else if (rows < 110) level = 8;
             else if (rows < 130) level = 9;
             else if (rows < 150) level = 10;
+            SaveHighestScore();
+        }
+        static void Endgame()
+        {
+            score = 0; //Reset điểm về 0
+            ReadHighestScore(); //Đọc điểm cao nhất
+        }
+
+        //Đọc điểm cao nhất từ file
+        static void ReadHighestScore()
+        {
+            try
+            {
+                string highestScoreStr = File.ReadAllText("highestscore.txt");
+                bool isValid = int.TryParse(highestScoreStr, out highestScore);
+            }
+            catch (Exception e)
+            {
+                highestScore = 0;
+            }
+        }
+
+        //Lưu điểm cao nhất vào file
+        static void SaveHighestScore()
+        {
+            //Score nhỏ hơn highestScore thì không lưu vào file
+            if (score < highestScore) return;
+            //Bằng score
+            try
+            {
+                File.WriteAllText("highestscore.txt", score.ToString());
+                highestScore = score;
+            }
+            catch (Exception e)
+            {
+
+            }
         }
     }
 }
