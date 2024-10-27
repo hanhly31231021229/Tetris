@@ -49,7 +49,7 @@ namespace Thunghiem1
             block = tetrisFigures[rnd.Next(0, 7)];
             Console.Clear();
             Thune.DrawBorder();
-            Thune.GetDashboard(1, 0, 0);
+            Thune.GetDashboard(1, 0,0, 0);
             ShowTetrisFigureOnDashboard();
             
         }
@@ -64,7 +64,7 @@ namespace Thunghiem1
                     if (block[i, j] == 1)
                     {
                         //Hiển thị khối tiếp theo
-                        Console.SetCursorPosition(((10 - block.GetLength(1)) / 2 + j) * 2 + 35, i + 13);
+                        Console.SetCursorPosition(((10 - block.GetLength(1)) / 2 + j) * 2 + 35, i + 15);
                         Console.Write(Thune.blockArea);
                     }
                 }
