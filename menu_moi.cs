@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,6 +9,8 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using static System.Formats.Asn1.AsnWriter;
 using static System.Reflection.Metadata.BlobBuilder;
+using NAudio.Wave;
+
 
 namespace Thunghiem1
 {
@@ -18,7 +19,10 @@ namespace Thunghiem1
         public static string blockArea = "■";   //1 khối
         public static int rows = 0, score = 0, level = 1;
         public static int[,] grid = new int[23, 16];
-        static int highestScore = 0;
+        public static int highestScore = 0;
+
+        private static WaveOutEvent waveOut;
+        private static AudioFileReader audioFileReader;
 
         //Repeated statics Atributes
         private static TetrisFigure tFig;   //khối đang rơi
@@ -48,18 +52,42 @@ namespace Thunghiem1
         }
         static void Main(string[] args)
         {
-
+            Task.Run(() => Music());
             GetMenu();
+        }
 
+        static void Music()
+        {
+            string audioFilePath = "music.wav";
+
+            // Thiết lập trình phát âm thanh  
+            waveOut = new WaveOutEvent();
+            audioFileReader = new AudioFileReader(audioFilePath);
+
+            // Vòng lặp để phát nhạc liên tục  
+            while (true)
+            {
+                waveOut.Init(audioFileReader);
+                waveOut.Play();
+
+                // Đợi cho đến khi âm thanh kết thúc  
+                while (waveOut.PlaybackState == PlaybackState.Playing)
+                {
+                    System.Threading.Thread.Sleep(100); // Đợi một chút để kiểm tra trạng thái  
+                }
+
+                // Reset audioFileReader để phát lại từ đầu  
+                audioFileReader.Position = 0;
+            }
         }
         static void GetMenu()
         {
             Console.WriteLine("Menu");
             options = new List<Option>()
             {
-                new Option("Instruction", () => Huongdan()),
-                new Option("StartGame", () => Game()),
-                new Option("Exit", () => Environment.Exit(0)),
+                new Option("\t\t\tInstruction", () => Huongdan()),
+                new Option("\t\t\tStartGame", () => Game()),
+                new Option("\t\t\tExit", () => Environment.Exit(0)),
             };
             int index = 0;
             WriteMenu(options, options[index]);
@@ -101,7 +129,7 @@ namespace Thunghiem1
 
         static void WriteMenu(List<Option> options, Option selectedOption)
         {
-
+            
             Console.Clear();
             Console.SetCursorPosition(40, 7);
             Console.WriteLine(@"
@@ -115,12 +143,12 @@ namespace Thunghiem1
                         ===================================================================
             ");
 
-            Console.SetCursorPosition(0, 10);
+            Console.SetCursorPosition(0, 18);
             foreach (Option option in options)
             {
                 if (option == selectedOption)
                 {
-                    Console.Write("> ");
+                    Console.Write("\t\t\t> ");
                 }
                 else
                 {
@@ -156,6 +184,8 @@ namespace Thunghiem1
                 GetMenu();
             }
         }
+    
+     
         static void Game()
         {
             do
@@ -199,39 +229,36 @@ namespace Thunghiem1
                     keyinfo = Console.ReadKey();
 
                     Console.SetCursorPosition(40, 20);
-                        Console.WriteLine("Do you want to continue? Y/N");
-                        Console.SetCursorPosition(40, 22);
-                        string res = "" + Console.ReadLine();
+                    Console.WriteLine("Do you want to continue? Y/N");
+                    Console.SetCursorPosition(40, 22);
+                    string res = "" + Console.ReadLine();
 
-                        if (res.ToUpper().Equals("Y"))
+                    if (res.ToUpper().Equals("Y"))
+                    {
+                        for (int i = 0; i < 23; i++)
                         {
-                            for (int i = 0; i < 23; i++)
+                            for (int j = 0; j < 16; j++)
                             {
-                                for (int j = 0; j < 16; j++)
-                                {
-                                    spawnedBlockLocation[i, j] = 0;
-                                }
+                                spawnedBlockLocation[i, j] = 0;
                             }
-                            score = 0;
-                            rows = 0;
-                            level = 1;
                         }
-                        else if (res.ToUpper().Equals("N"))
-                        {
-                            Console.SetCursorPosition(40, 24);
-                            Console.WriteLine("Bye! See you again");
-                            Environment.Exit(0);
-                        
-                        }
+                        score = 0;
+                        rows = 0;
+                        level = 1;
+                    }
+                    else if (res.ToUpper().Equals("N"))
+                    {
+                        Console.SetCursorPosition(40, 24);
+                        Console.WriteLine("Bye! See you again");
+                        Environment.Exit(0);
+
+                    }
                     else
-                        {
-                            Console.SetCursorPosition(40, 24);
-                            Console.WriteLine("Invalid input. Please enter 'Y' or 'N'.");
-                            break;
-                            
-                        }
-
-
+                    {
+                        Console.SetCursorPosition(40, 24);
+                        Console.WriteLine("Invalid input. Please enter 'Y' or 'N'.");
+                        break;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -242,8 +269,6 @@ namespace Thunghiem1
 
 
             } while (true);
-
-
         }
 
         //Vẽ map
@@ -332,7 +357,7 @@ namespace Thunghiem1
             } //end Update
 
         }
-
+     
         //Nút để chơi
         private static void Input()
         {
@@ -424,7 +449,7 @@ namespace Thunghiem1
 
             lvlModifier(combo);
 
-            GetDashboard(level,highestScore, score, rows);
+            GetDashboard(level, highestScore, score, rows);
 
             dropRate = 300 - 22 * level;
 
@@ -481,12 +506,12 @@ namespace Thunghiem1
             //Bằng score
             try
             {
-                File.WriteAllText("highestscore.txt", score.ToString());
+                File.WriteAllText("highestscore.txt", $"Your highest score: {score}");
                 highestScore = score;
             }
             catch (Exception e)
             {
-
+                Console.WriteLine($"Error saving highest score: {e.Message}");
             }
         }
     }
@@ -563,3 +588,5 @@ namespace Thunghiem1
 
 //    }
 //}
+
+       
